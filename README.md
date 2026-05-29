@@ -21,6 +21,7 @@ Piloto de referência: **Ecossistema Landscape (LandscapeLABs)**.
 ## Como rodar
 
 ```bash
+git clone https://github.com/fercarlim24/shift-rh.git
 cd shift-rh
 npm install
 npm run db:setup   # cria banco + seed demo
@@ -37,16 +38,6 @@ Abra [http://localhost:3000](http://localhost:3000).
 | `admin@shift.rh` | `demo123` | Admin Shift |
 
 Use o seletor no topo para alternar entre **LandscapeLABs** e **Acme Tech** e ver o isolamento multi-tenant.
-
-## Subir para o Git
-
-```bash
-git init   # se ainda não existir remote
-git add .
-git commit -m "feat: protótipo MVP Shift RH"
-git remote add origin <url-do-seu-repo>
-git push -u origin main
-```
 
 > O banco SQLite (`prisma/dev.db`) **não** vai para o git. Quem clonar roda `npm run db:setup`.
 
