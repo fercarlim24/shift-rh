@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SHIFT_ADMIN
+  SHIFT_CONSULTANT
+  CLIENT_VIEWER
+}
+
+enum JobStatus {
+  OPEN
+  PAUSED
+  CLOSED
+}
+
+enum EmploymentType {
+  CLT
+  PJ
+  BOTH
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum OnboardingStatus {
+  STARTED
+  DOCS_PENDING
+  SIGNATURE
+  COMPLETED
+}
+
+enum SignatureStatus {
+  PENDING
+  SIGNED
+  REJECTED
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  tradeName String?
+  cnpj      String?
+  city      String?
+  region    String?
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users          User[]
+  jobOpenings    JobOpening[]
+  pipelineStages PipelineStage[]
+  candidates     Candidate[]
+  tasks          Task[]
+  employees      Employee[]
+  onboardings    Onboarding[]
+}
+
+model User {
+  id             String        @id @default(cuid())
+  email          String        @unique
+  name           String
+  password       String
+  role           UserRole
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime      @default(now())
+
+  assignedTasks Task[]      @relation("TaskAssignee")
+  candidates    Candidate[] @relation("CandidateOwner")
+}
+
+model PipelineStage {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  order          Int
+  isTerminal     Boolean      @default(false)
+  terminalType   String?
+
+  candidates Candidate[]
+}
+
+model JobOpening {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  area           String?
+  seniority      String?
+  employmentType EmploymentType @default(CLT)
+  quantity       Int            @default(1)
+  priority       TaskPriority   @default(MEDIUM)
+  status         JobStatus      @default(OPEN)
+  ownerName      String?
+  openedAt       DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  candidates Candidate[]
+}
+
+model Candidate {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  jobOpeningId   String?
+  jobOpening     JobOpening?   @relation(fields: [jobOpeningId], references: [id])
+  stageId        String
+  stage          PipelineStage @relation(fields: [stageId], references: [id])
+  ownerId        String?
+  owner          User?         @relation("CandidateOwner", fields: [ownerId], references: [id])
+  name           String
+  email          String?
+  phone          String?
+  source         String?
+  declineReason  String?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  onboardings Onboarding[]
+}
+
+model Task {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assigneeId     String?
+  assignee       User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  title          String
+  description    String?
+  status         TaskStatus   @default(TODO)
+  priority       TaskPriority @default(MEDIUM)
+  dueDate        DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Employee {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  email          String?
+  document       String?
+  employmentType EmploymentType
+  role           String?
+  area           String?
+  startDate      DateTime?
+  status         String         @default("ACTIVE")
+  pjCompanyName  String?
+  pjCnpj         String?
+  createdAt      DateTime       @default(now())
+}
+
+model Onboarding {
+  id              String           @id @default(cuid())
+  organizationId  String
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  candidateId     String?
+  candidate       Candidate?       @relation(fields: [candidateId], references: [id])
+  employeeName    String
+  employmentType  EmploymentType
+  status          OnboardingStatus @default(STARTED)
+  signatureStatus SignatureStatus  @default(PENDING)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
