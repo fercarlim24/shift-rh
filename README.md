@@ -16,18 +16,18 @@ Piloto de referência: **Ecossistema Landscape (LandscapeLABs)**.
 - [Next.js 16](https://nextjs.org/) (App Router)
 - [TypeScript](https://www.typescriptlang.org/)
 - [Tailwind CSS 4](https://tailwindcss.com/)
-- [Prisma](https://www.prisma.io/) + PostgreSQL ([Neon](https://neon.tech))
+- [Prisma](https://www.prisma.io/) + PostgreSQL ([Supabase](https://supabase.com) ou [Neon](https://neon.tech))
 
 ## Deploy (Vercel)
 
 Guia completo: **[docs/DEPLOY.md](docs/DEPLOY.md)**
 
-Resumo rápido:
+Resumo rápido (Supabase):
 
-1. Crie um banco no **Neon** (gratuito)
+1. Novo projeto (ou banco) no **Supabase** → copie URI **Transaction** e **Session/Direct**
 2. Importe o repo na **Vercel**: https://github.com/fercarlim24/shift-rh
-3. Configure as env vars `DATABASE_URL` (pooled) e `DIRECT_URL` (direct)
-4. Deploy → depois rode `npm run db:seed` uma vez com as URLs de produção
+3. Env vars: `DATABASE_URL` (Transaction/6543) e `DIRECT_URL` (Session/5432)
+4. Deploy → depois `npm run db:seed` uma vez com essas URLs
 
 ## Desenvolvimento local
 
@@ -36,7 +36,7 @@ git clone https://github.com/fercarlim24/shift-rh.git
 cd shift-rh
 npm install
 cp .env.example .env
-# Cole DATABASE_URL e DIRECT_URL do Neon
+# Cole DATABASE_URL e DIRECT_URL do Supabase (ou Neon)
 npm run db:setup
 npm run dev
 ```

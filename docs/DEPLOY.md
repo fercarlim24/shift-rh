@@ -6,59 +6,90 @@ Guia passo a passo para colocar o protótipo no ar e testar online.
 
 - Repo no GitHub: https://github.com/fercarlim24/shift-rh
 - Conta [Vercel](https://vercel.com) (login com GitHub)
-- Conta [Neon](https://neon.tech) (Postgres gratuito; funciona bem com Vercel)
+- Postgres na nuvem — **Supabase** (recomendado se você já usa) ou [Neon](https://neon.tech)
 
 > **Por que Postgres?** A Vercel roda em serverless — SQLite (arquivo local) não persiste entre requisições.
 
 ---
 
-## 1. Criar banco no Neon
+## Opção A — Supabase (recomendado)
 
-1. Acesse [console.neon.tech](https://console.neon.tech) → **New Project**
-2. Nome sugerido: `shift-rh`
-3. Região: **AWS São Paulo (sa-east-1)** se disponível, ou US East
-4. No dashboard do projeto, copie:
-   - **Pooled connection** → será `DATABASE_URL`
-   - **Direct connection** → será `DIRECT_URL`
+### 1. Criar projeto / banco
+
+1. [supabase.com/dashboard](https://supabase.com/dashboard)
+2. **New project** (ou use um projeto existente e crie um schema dedicado — ver nota abaixo)
+3. Nome sugerido: `shift-rh`
+4. Anote a **senha do banco** ao criar o projeto
+
+### 2. Copiar connection strings
+
+**Project Settings** → **Database** → **Connection string** → aba **URI**
+
+| Variável na Vercel | O que usar no Supabase |
+|--------------------|-------------------------|
+| `DATABASE_URL` | **Transaction** pooler (porta **6543**) — modo *Transaction* |
+| `DIRECT_URL` | **Session** pooler ou **Direct** (porta **5432**) — para migrations |
+
+Exemplo (substitua `[PASSWORD]` e `[PROJECT-REF]`):
+
+```bash
+# App (runtime) — Transaction pooler
+DATABASE_URL="postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+# Migrations — Session pooler ou Direct connection
+DIRECT_URL="postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres"
+```
+
+Marque **Use connection pooling** na UI do Supabase ao copiar a URL de runtime.
+
+> **Projeto Supabase existente:** pode criar um **novo projeto** só para o Shift RH (mais simples) ou reutilizar o mesmo Postgres — as tabelas do Prisma ficam no schema `public`. Evite conflito de nomes se outro app já usar `User`, `Organization`, etc.
+
+### 3. Importar na Vercel
+
+1. [vercel.com/new](https://vercel.com/new) → `fercarlim24/shift-rh`
+2. **Environment Variables**:
+
+| Variável | Valor |
+|----------|--------|
+| `DATABASE_URL` | URI **Transaction** (6543) |
+| `DIRECT_URL` | URI **Session** ou **Direct** (5432) |
+
+3. **Deploy**
+
+### 4. Seed (dados demo)
+
+```bash
+cd shift-rh
+export DATABASE_URL="..."   # Transaction (6543)
+export DIRECT_URL="..."     # Session/Direct (5432)
+npm run db:seed
+```
 
 ---
 
-## 2. Importar projeto na Vercel
+## Opção B — Neon
 
-1. [vercel.com/new](https://vercel.com/new)
-2. **Import Git Repository** → `fercarlim24/shift-rh`
-3. Framework detectado: **Next.js** (não altere)
-4. Em **Environment Variables**, adicione:
+1. [console.neon.tech](https://console.neon.tech) → **New Project**
+2. Copie **Pooled** → `DATABASE_URL`, **Direct** → `DIRECT_URL`
+3. Mesmo fluxo Vercel + seed acima
 
-| Variável | Valor | Ambientes |
-|----------|-------|-----------|
-| `DATABASE_URL` | URL pooled do Neon | Production, Preview, Development |
-| `DIRECT_URL` | URL direct do Neon | Production, Preview, Development |
+---
 
-5. Clique **Deploy**
+## Build na Vercel
 
-O build roda automaticamente:
+O comando de build executa automaticamente:
 
 ```bash
 prisma generate && prisma migrate deploy && next build
 ```
 
+`prisma migrate deploy` usa `DIRECT_URL` (via `prisma.config.ts`).
+
 ---
 
-## 3. Popular dados demo (seed)
+## Testar
 
-Após o primeiro deploy bem-sucedido, rode o seed **uma vez** apontando para o banco de produção:
-
-```bash
-# Na sua máquina, com as URLs do Neon:
-export DATABASE_URL="postgresql://..."
-export DIRECT_URL="postgresql://..."
-npm run db:seed
-```
-
-Ou use `vercel env pull .env.local` (com [Vercel CLI](https://vercel.com/docs/cli)) e depois `npm run db:seed`.
-
-Contas criadas pelo seed:
+URL da Vercel (ex.: `https://shift-rh.vercel.app`):
 
 | E-mail | Senha |
 |--------|-------|
@@ -67,24 +98,14 @@ Contas criadas pelo seed:
 
 ---
 
-## 4. Testar
-
-Abra a URL que a Vercel gerou (ex.: `https://shift-rh.vercel.app`):
-
-1. Login com `patricia@shift.rh` / `demo123`
-2. Troque cliente no header (LandscapeLABs ↔ Acme Tech)
-3. Navegue: Dashboard, Vagas, R&S, Tarefas, Admissões
-
----
-
-## Desenvolvimento local (com Neon)
+## Desenvolvimento local
 
 ```bash
 git clone https://github.com/fercarlim24/shift-rh.git
 cd shift-rh
 npm install
 cp .env.example .env
-# Cole DATABASE_URL e DIRECT_URL do Neon no .env
+# Cole DATABASE_URL e DIRECT_URL do Supabase
 npm run db:setup
 npm run dev
 ```
@@ -95,10 +116,8 @@ npm run dev
 
 | Variável | Obrigatória | Descrição |
 |----------|-------------|-----------|
-| `DATABASE_URL` | Sim | Postgres (pooled no Neon) |
-| `DIRECT_URL` | Sim* | Conexão direta para migrations |
-
-\*Se usar Postgres sem pooler, repita a mesma URL em ambas.
+| `DATABASE_URL` | Sim | Postgres pooled (app) |
+| `DIRECT_URL` | Sim | Postgres direct/session (migrations) |
 
 ---
 
@@ -106,32 +125,34 @@ npm run dev
 
 ### Build falha em `prisma migrate deploy`
 
-- Confirme `DIRECT_URL` (não a pooled) nas env vars da Vercel
-- No Neon, a direct URL **não** contém `-pooler` no hostname
+- **Supabase:** `DIRECT_URL` deve ser porta **5432** (Session ou Direct), não 6543
+- **Neon:** `DIRECT_URL` sem `-pooler` no hostname
+- Confirme `?sslmode=require` se a conexão exigir SSL
+
+### Erro de prepared statements / Prisma
+
+- Runtime (`DATABASE_URL`) no Supabase: use pooler **Transaction** com `?pgbouncer=true`
+- Não use a URL Transaction (6543) em `DIRECT_URL`
 
 ### Login não persiste
 
-- Cookies usam `secure: true` em production — acesse sempre via **HTTPS** (URL da Vercel)
+- Acesse só via **HTTPS** (URL da Vercel)
 
 ### Página sem dados
 
-- Rode `npm run db:seed` com as URLs de produção (passo 3)
+- Rode `npm run db:seed` apontando para o banco de produção
 
-### Região
+### Região Vercel
 
-O `vercel.json` define `gru1` (São Paulo). Se o plano não suportar, remova `regions` do arquivo.
+`vercel.json` usa `gru1` (São Paulo). Remova `regions` se o plano não suportar.
 
 ---
 
 ## Próximos deploys
 
-Cada push na branch `main` dispara deploy automático na Vercel (se o projeto estiver linkado).
-
 ```bash
 git push origin main
 ```
-
----
 
 ## Vercel CLI (opcional)
 
