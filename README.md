@@ -16,15 +16,28 @@ Piloto de referência: **Ecossistema Landscape (LandscapeLABs)**.
 - [Next.js 16](https://nextjs.org/) (App Router)
 - [TypeScript](https://www.typescriptlang.org/)
 - [Tailwind CSS 4](https://tailwindcss.com/)
-- [Prisma](https://www.prisma.io/) + SQLite (local, zero config)
+- [Prisma](https://www.prisma.io/) + PostgreSQL ([Neon](https://neon.tech))
 
-## Como rodar
+## Deploy (Vercel)
+
+Guia completo: **[docs/DEPLOY.md](docs/DEPLOY.md)**
+
+Resumo rápido:
+
+1. Crie um banco no **Neon** (gratuito)
+2. Importe o repo na **Vercel**: https://github.com/fercarlim24/shift-rh
+3. Configure as env vars `DATABASE_URL` (pooled) e `DIRECT_URL` (direct)
+4. Deploy → depois rode `npm run db:seed` uma vez com as URLs de produção
+
+## Desenvolvimento local
 
 ```bash
 git clone https://github.com/fercarlim24/shift-rh.git
 cd shift-rh
 npm install
-npm run db:setup   # cria banco + seed demo
+cp .env.example .env
+# Cole DATABASE_URL e DIRECT_URL do Neon
+npm run db:setup
 npm run dev
 ```
 
@@ -39,8 +52,6 @@ Abra [http://localhost:3000](http://localhost:3000).
 
 Use o seletor no topo para alternar entre **LandscapeLABs** e **Acme Tech** e ver o isolamento multi-tenant.
 
-> O banco SQLite (`prisma/dev.db`) **não** vai para o git. Quem clonar roda `npm run db:setup`.
-
 ## Estrutura
 
 ```
@@ -48,7 +59,8 @@ src/app/(app)/     # páginas autenticadas
 src/app/login/     # login demo
 src/components/    # shell, kanban
 src/lib/           # prisma, sessão, labels
-prisma/            # schema + seed
+prisma/            # schema + migrations + seed
+docs/DEPLOY.md     # guia Vercel + Neon
 ```
 
 ## O que é mock vs. real
@@ -66,8 +78,7 @@ prisma/            # schema + seed
 1. Auth real (NextAuth ou similar) + hash de senha
 2. CRUD completo (criar vaga, candidato, tarefa)
 3. Integração Autentique (webhook)
-4. Deploy (Vercel + Postgres)
-5. Export PDF do funil R&S
+4. Export PDF do funil R&S
 
 ---
 

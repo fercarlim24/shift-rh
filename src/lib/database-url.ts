@@ -1,12 +1,15 @@
-import path from "node:path";
-
 export function getDatabaseUrl() {
-  const url = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
+  const url = process.env.DATABASE_URL;
 
-  if (url.startsWith("file:./")) {
-    const relative = url.slice("file:".length);
-    return `file:${path.join(process.cwd(), relative)}`;
+  if (!url) {
+    throw new Error(
+      "DATABASE_URL não configurada. Veja .env.example ou docs/DEPLOY.md",
+    );
   }
 
   return url;
+}
+
+export function getDirectDatabaseUrl() {
+  return process.env.DIRECT_URL ?? process.env.DATABASE_URL!;
 }
