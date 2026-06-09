@@ -24,6 +24,7 @@ export const taskStatusLabel: Record<TaskStatus, string> = {
   TODO: "A fazer",
   IN_PROGRESS: "Em andamento",
   DONE: "Concluída",
+  ARCHIVED: "Arquivada",
 };
 
 export const taskPriorityLabel: Record<TaskPriority, string> = {
@@ -47,8 +48,9 @@ export const signatureStatusLabel: Record<SignatureStatus, string> = {
 
 export const roleLabel: Record<UserRole, string> = {
   SHIFT_ADMIN: "Admin Shift",
-  SHIFT_CONSULTANT: "Consultor",
-  CLIENT_VIEWER: "Cliente (leitura)",
+  SHIFT_CONSULTANT: "Consultor Shift",
+  CLIENT_VIEWER: "Cliente Gestor",
+  COLLABORATOR: "Colaborador",
 };
 
 export function formatDate(date: Date | string | null | undefined) {

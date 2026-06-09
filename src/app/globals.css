@@ -1,13 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --duration-fast: 140ms;
+  --duration-ui: 200ms;
+
+  --background: #ececee;
+  --foreground: #111113;
+  --surface: #f9f9fa;
+  --surface-raised: #ffffff;
+  --border: #d8d8de;
+  --muted: #6b6b76;
+
+  --accent: #e84a2f;
+  --accent-hover: #cf3f27;
+  --accent-glow: rgb(232 74 47 / 0.45);
+  --accent-subtle: #fdeee9;
+  --highlight: #14b8a6;
+
+  --sidebar: #0b0b0e;
+  --sidebar-elevated: #141419;
+  --sidebar-border: rgb(255 255 255 / 0.06);
+
+  --radius: 0.5rem;
+  --radius-lg: 0.875rem;
+  --shadow-sm: 0 1px 2px rgb(17 17 19 / 0.06);
+  --shadow-md: 0 8px 24px rgb(17 17 19 / 0.1);
+  --shadow-accent: 0 8px 28px var(--accent-glow);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -16,4 +47,231 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--foreground);
+}
+
+/* Canvas: subtle grid, not flat gray */
+.app-canvas {
+  background-color: var(--background);
+  background-image:
+    linear-gradient(rgb(17 17 19 / 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(17 17 19 / 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Sidebar ambient glow */
+.sidebar-glow {
+  background:
+    radial-gradient(ellipse 120% 80% at 0% 100%, rgb(232 74 47 / 0.14), transparent 55%),
+    radial-gradient(ellipse 80% 50% at 100% 0%, rgb(20 184 166 / 0.08), transparent 50%),
+    var(--sidebar);
+}
+
+/* Interactive primitives — explicit properties, ease-out only */
+.ui-press {
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-ui) var(--ease-out),
+    background-color var(--duration-ui) var(--ease-out),
+    border-color var(--duration-ui) var(--ease-out),
+    color var(--duration-ui) var(--ease-out);
+}
+
+.ui-press:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-press:active {
+    transform: none;
+  }
+}
+
+.ui-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--duration-ui) var(--ease-out),
+    box-shadow var(--duration-ui) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ui-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.ui-stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.ui-stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--highlight));
+  opacity: 0.9;
+}
+
+.ui-nav-item {
+  position: relative;
+  transition:
+    color var(--duration-ui) var(--ease-out),
+    background-color var(--duration-ui) var(--ease-out);
+}
+
+.ui-nav-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+  box-shadow: 0 0 16px var(--accent-glow);
+  transform: translateY(-50%);
+  transition:
+    height var(--duration-ui) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+  opacity: 0;
+}
+
+.ui-nav-active {
+  background: rgb(255 255 255 / 0.06);
+  color: #fafafa;
+}
+
+.ui-nav-active::before {
+  height: 55%;
+  opacity: 1;
+}
+
+.ui-flash-enter {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity var(--duration-ui) var(--ease-out),
+    transform var(--duration-ui) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+/* Stagger: page sections seen occasionally (dashboard KPIs). Short delays only. */
+@keyframes ui-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ui-stagger-grid > * {
+  opacity: 0;
+  animation: ui-rise-in 220ms var(--ease-out) forwards;
+}
+
+.ui-stagger-grid > *:nth-child(1) { animation-delay: 0ms; }
+.ui-stagger-grid > *:nth-child(2) { animation-delay: 35ms; }
+.ui-stagger-grid > *:nth-child(3) { animation-delay: 70ms; }
+.ui-stagger-grid > *:nth-child(4) { animation-delay: 105ms; }
+.ui-stagger-grid > *:nth-child(5) { animation-delay: 140ms; }
+.ui-stagger-grid > *:nth-child(6) { animation-delay: 175ms; }
+
+.ui-stagger-list > li {
+  opacity: 0;
+  animation: ui-rise-in 200ms var(--ease-out) forwards;
+}
+
+.ui-stagger-list > li:nth-child(1) { animation-delay: 0ms; }
+.ui-stagger-list > li:nth-child(2) { animation-delay: 30ms; }
+.ui-stagger-list > li:nth-child(3) { animation-delay: 60ms; }
+.ui-stagger-list > li:nth-child(4) { animation-delay: 90ms; }
+.ui-stagger-list > li:nth-child(5) { animation-delay: 120ms; }
+
+.ui-reveal-in {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 260ms var(--ease-out),
+    transform 260ms var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+.ui-kanban-card {
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-ui) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ui-kanban-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.ui-link-lift {
+  transition: color var(--duration-ui) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ui-link-lift:hover {
+    color: var(--accent-hover);
+  }
+}
+
+.login-mesh {
+  background:
+    radial-gradient(ellipse 90% 70% at 20% 20%, rgb(232 74 47 / 0.35), transparent 50%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgb(20 184 166 / 0.2), transparent 45%),
+    var(--sidebar);
+}
+
+.login-card {
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-card:hover,
+  .ui-kanban-card:hover {
+    transform: none;
+  }
+
+  .ui-flash-enter,
+  .ui-reveal-in {
+    @starting-style {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .ui-stagger-grid > *,
+  .ui-stagger-list > li {
+    opacity: 1;
+    animation: none;
+  }
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { inputClass } from "@/lib/ui-classes";
+
 export function OrgSelect({
   organizations,
   defaultValue,
@@ -12,7 +14,7 @@ export function OrgSelect({
       name="organizationId"
       defaultValue={defaultValue}
       onChange={(e) => e.currentTarget.form?.requestSubmit()}
-      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+      className={`${inputClass} min-w-[180px] py-2`}
     >
       {organizations.map((org) => (
         <option key={org.id} value={org.id}>

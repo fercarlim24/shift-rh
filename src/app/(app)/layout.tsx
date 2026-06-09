@@ -1,20 +1,15 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { prisma } from "@/lib/prisma";
+import { getAccessibleOrganizations } from "@/lib/tenant";
 import { requireSession } from "@/lib/session";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession();
+  const organizations = await getAccessibleOrganizations(session);
 
-  const organizations = await prisma.organization.findMany({
-    where: { status: "ACTIVE" },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, tradeName: true },
-  });
-
-  const activeOrganization = organizations.find(
-    (org) => org.id === session.activeOrganizationId,
-  );
+  const activeOrganization =
+    organizations.find((org) => org.id === session.activeOrganizationId) ??
+    organizations[0];
 
   if (!activeOrganization) {
     redirect("/login");

@@ -13,6 +13,7 @@ enum UserRole {
   SHIFT_ADMIN
   SHIFT_CONSULTANT
   CLIENT_VIEWER
+  COLLABORATOR
 }
 
 enum JobStatus {
@@ -31,6 +32,7 @@ enum TaskStatus {
   TODO
   IN_PROGRESS
   DONE
+  ARCHIVED
 }
 
 enum TaskPriority {
@@ -53,23 +55,28 @@ enum SignatureStatus {
 }
 
 model Organization {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
   tradeName String?
   cnpj      String?
   city      String?
   region    String?
-  status    String   @default("ACTIVE")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status    String    @default("ACTIVE")
+  archivedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdById String?
+  updatedById String?
 
-  users          User[]
-  jobOpenings    JobOpening[]
-  pipelineStages PipelineStage[]
-  candidates     Candidate[]
-  tasks          Task[]
-  employees      Employee[]
-  onboardings    Onboarding[]
+  users               User[]
+  consultantAccess    UserOrganizationAccess[]
+  jobOpenings         JobOpening[]
+  pipelineStages      PipelineStage[]
+  candidates          Candidate[]
+  tasks               Task[]
+  employees           Employee[]
+  onboardings         Onboarding[]
+  auditLogs           AuditLog[]
 }
 
 model User {
@@ -80,10 +87,28 @@ model User {
   role           UserRole
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
+  archivedAt     DateTime?
   createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
-  assignedTasks Task[]      @relation("TaskAssignee")
-  candidates    Candidate[] @relation("CandidateOwner")
+  assignedTasks          Task[]                   @relation("TaskAssignee")
+  ownedCandidates        Candidate[]              @relation("CandidateOwner")
+  responsibleOnboardings Onboarding[]             @relation("OnboardingResponsible")
+  organizationAccess     UserOrganizationAccess[]
+  employeeProfile        Employee?
+  auditLogs              AuditLog[]
+  uploadedDocuments      OnboardingDocument[]
+}
+
+model UserOrganizationAccess {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@unique([userId, organizationId])
 }
 
 model PipelineStage {
@@ -94,6 +119,9 @@ model PipelineStage {
   order          Int
   isTerminal     Boolean      @default(false)
   terminalType   String?
+  archivedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   candidates Candidate[]
 }
@@ -111,10 +139,14 @@ model JobOpening {
   status         JobStatus      @default(OPEN)
   ownerName      String?
   openedAt       DateTime       @default(now())
+  archivedAt     DateTime?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+  createdById    String?
+  updatedById    String?
 
   candidates Candidate[]
+  tasks      Task[]
 }
 
 model Candidate {
@@ -133,10 +165,14 @@ model Candidate {
   source         String?
   declineReason  String?
   notes          String?
+  archivedAt     DateTime?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  createdById    String?
+  updatedById    String?
 
   onboardings Onboarding[]
+  tasks       Task[]
 }
 
 model Task {
@@ -145,19 +181,30 @@ model Task {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   assigneeId     String?
   assignee       User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  jobOpeningId   String?
+  jobOpening     JobOpening?  @relation(fields: [jobOpeningId], references: [id])
+  candidateId    String?
+  candidate      Candidate?   @relation(fields: [candidateId], references: [id])
+  onboardingId   String?
+  onboarding     Onboarding?  @relation(fields: [onboardingId], references: [id])
   title          String
   description    String?
   status         TaskStatus   @default(TODO)
   priority       TaskPriority @default(MEDIUM)
   dueDate        DateTime?
+  archivedAt     DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  createdById    String?
+  updatedById    String?
 }
 
 model Employee {
   id             String         @id @default(cuid())
   organizationId String
   organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String?        @unique
+  user           User?          @relation(fields: [userId], references: [id])
   name           String
   email          String?
   document       String?
@@ -168,7 +215,11 @@ model Employee {
   status         String         @default("ACTIVE")
   pjCompanyName  String?
   pjCnpj         String?
+  archivedAt     DateTime?
   createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  createdById    String?
+  updatedById    String?
 }
 
 model Onboarding {
@@ -177,10 +228,58 @@ model Onboarding {
   organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   candidateId     String?
   candidate       Candidate?       @relation(fields: [candidateId], references: [id])
+  responsibleId   String?
+  responsible     User?            @relation("OnboardingResponsible", fields: [responsibleId], references: [id])
   employeeName    String
   employmentType  EmploymentType
   status          OnboardingStatus @default(STARTED)
   signatureStatus SignatureStatus  @default(PENDING)
+  documents       Json?
+  archivedAt      DateTime?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  createdById     String?
+  updatedById     String?
+
+  events            OnboardingEvent[]
+  tasks             Task[]
+  attachedDocuments OnboardingDocument[]
+}
+
+model OnboardingDocument {
+  id             String     @id @default(cuid())
+  onboardingId   String
+  onboarding     Onboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  organizationId String
+  filename       String
+  mimeType       String
+  size           Int
+  storageKey     String?
+  contentBase64  String?
+  uploadedById   String?
+  uploadedBy     User?      @relation(fields: [uploadedById], references: [id])
+  createdAt      DateTime   @default(now())
+}
+
+model OnboardingEvent {
+  id           String     @id @default(cuid())
+  onboardingId String
+  onboarding   Onboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  type         String
+  message      String
+  createdById  String?
+  createdAt    DateTime   @default(now())
+}
+
+model AuditLog {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  userId         String
+  user           User          @relation(fields: [userId], references: [id])
+  action         String
+  entityType     String
+  entityId       String?
+  details        String?
+  createdAt      DateTime      @default(now())
 }

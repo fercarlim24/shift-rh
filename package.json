@@ -7,6 +7,12 @@
     "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "audit": "tsx scripts/audit.ts",
+    "test": "vitest run",
+    "local:db": "docker compose up -d --wait db",
+    "local:setup": "npm run local:db && npm run db:deploy && npm run db:seed",
+    "local:dev": "npm run local:setup && npm run dev",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
@@ -14,7 +20,9 @@
     "db:setup": "prisma migrate deploy && tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "next": "16.2.6",
     "react": "19.2.4",
@@ -22,6 +30,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -30,6 +39,7 @@
     "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "tsx": "^4.22.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   }
 }
